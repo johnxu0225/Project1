@@ -30,7 +30,7 @@ public class User {
     @Column(nullable = false)
     private String role = "employee"; // Default role
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore //prevents circular reference in our JSON responses
     private List<Reimbursement> reimbursements;
 
