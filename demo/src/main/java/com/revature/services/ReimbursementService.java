@@ -87,5 +87,59 @@ public class ReimbursementService {
         return reimbursementDAO.save(reimbursement);
     }
 
+    public Reimbursement getReimbursementById(int reimbId) {
+        return reimbursementDAO.findById(reimbId)
+                .orElseThrow(() -> new IllegalArgumentException("Reimbursement with ID " + reimbId + " not found."));
+    }
+
+    public Reimbursement updateReimbursement(int reimbursementId, Reimbursement updatedReimbursement, int userId) {
+        // Fetch the existing reimbursement
+        Reimbursement existingReimbursement = reimbursementDAO.findById(reimbursementId)
+                .orElseThrow(() -> new IllegalArgumentException("Reimbursement not found."));
+
+        // Ensure the reimbursement belongs to the logged-in user
+        if (existingReimbursement.getUser().getUserId() != userId) {
+            throw new IllegalStateException("Unauthorized to update this reimbursement.");
+        }
+
+        // Ensure the reimbursement is still pending
+        if (!"PENDING".equalsIgnoreCase(existingReimbursement.getStatus())) {
+            throw new IllegalStateException("Only pending reimbursements can be updated.");
+        }
+
+        // Update fields
+        if (updatedReimbursement.getDescription() != null) {
+            existingReimbursement.setDescription(updatedReimbursement.getDescription());
+        }
+        if (updatedReimbursement.getAmount() > 0) {
+            existingReimbursement.setAmount(updatedReimbursement.getAmount());
+        }
+
+        // Save the updated reimbursement
+        return reimbursementDAO.save(existingReimbursement);
+    }
+
+    public Reimbursement updateReimbursementAsManager(int reimbursementId, Reimbursement updatedReimbursement) {
+        // Fetch the existing reimbursement
+        Reimbursement existingReimbursement = reimbursementDAO.findById(reimbursementId)
+                .orElseThrow(() -> new IllegalArgumentException("Reimbursement not found."));
+
+        // Ensure the reimbursement is still pending
+        if (!"PENDING".equalsIgnoreCase(existingReimbursement.getStatus())) {
+            throw new IllegalStateException("Only pending reimbursements can be updated.");
+        }
+
+        // Update fields
+        if (updatedReimbursement.getDescription() != null) {
+            existingReimbursement.setDescription(updatedReimbursement.getDescription());
+        }
+        if (updatedReimbursement.getAmount() > 0) {
+            existingReimbursement.setAmount(updatedReimbursement.getAmount());
+        }
+
+        // Save the updated reimbursement
+        return reimbursementDAO.save(existingReimbursement);
+    }
+
 
 }

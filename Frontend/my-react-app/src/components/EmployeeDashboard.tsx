@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "../api/axios";
 import { Reimbursement } from "../types";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 
 const EmployeeDashboard: React.FC = () => {
     const [reimbursements, setReimbursements] = useState<Reimbursement[]>([]);
@@ -11,7 +11,8 @@ const EmployeeDashboard: React.FC = () => {
         amount: "",
         description: "",
     });
-    const navigate = useNavigate(); // Initialize navigate
+    const [editingReimbursement, setEditingReimbursement] = useState<Reimbursement | null>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchReimbursements = async () => {
@@ -24,7 +25,7 @@ const EmployeeDashboard: React.FC = () => {
                 console.error("Error fetching reimbursements:", error);
                 if (error.response?.status === 401) {
                     setError("You are not authorized. Redirecting to login...");
-                    setTimeout(() => navigate("/"), 2000); // Redirect to login page after 2 seconds
+                    setTimeout(() => navigate("/"), 2000);
                 } else {
                     setError("Failed to fetch reimbursements.");
                 }
@@ -32,7 +33,7 @@ const EmployeeDashboard: React.FC = () => {
         };
 
         fetchReimbursements();
-    }, [navigate]); // Include navigate as a dependency
+    }, [navigate]);
 
     const handleCreateReimbursement = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,12 +50,47 @@ const EmployeeDashboard: React.FC = () => {
                 { withCredentials: true }
             );
 
-            // Update reimbursements list with the new reimbursement
             setReimbursements([...reimbursements, response.data]);
             setNewReimbursement({ amount: "", description: "" });
             setSuccess("Reimbursement created successfully!");
         } catch (err) {
             setError("Failed to create reimbursement. Please try again.");
+        }
+    };
+
+    const handleUpdateReimbursement = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingReimbursement) return;
+
+        setError("");
+        setSuccess("");
+
+        try {
+            const response = await axios.patch(
+                `/reimbursements/user/self/${editingReimbursement.reimbid}`,
+                {
+                    amount: editingReimbursement.amount,
+                    description: editingReimbursement.description,
+                },
+                {
+                    withCredentials: true,
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            setReimbursements(
+                reimbursements.map((reimbursement) =>
+                    reimbursement.reimbid === editingReimbursement.reimbid
+                        ? response.data
+                        : reimbursement
+                )
+            );
+            setEditingReimbursement(null);
+            setSuccess("Reimbursement updated successfully!");
+        } catch (err) {
+            setError("Failed to update reimbursement. Please try again.");
         }
     };
 
@@ -71,6 +107,7 @@ const EmployeeDashboard: React.FC = () => {
                             <th>Description</th>
                             <th>Amount</th>
                             <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -80,10 +117,71 @@ const EmployeeDashboard: React.FC = () => {
                                 <td>{reimbursement.description}</td>
                                 <td>${reimbursement.amount.toFixed(2)}</td>
                                 <td>{reimbursement.status}</td>
+                                <td>
+                                    {reimbursement.status.toUpperCase() === "PENDING" && (
+                                        <button
+                                            onClick={() => setEditingReimbursement(reimbursement)}
+                                            style={{
+                                                backgroundColor: "orange",
+                                                color: "white",
+                                                padding: "5px 10px",
+                                                border: "none",
+                                                borderRadius: "5px",
+                                            }}
+                                        >
+                                            Edit
+                                        </button>
+                                    )}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
+            )}
+            {editingReimbursement && (
+                <div>
+                    <h3>Edit Reimbursement</h3>
+                    <form onSubmit={handleUpdateReimbursement}>
+                        <div>
+                            <label htmlFor="editAmount">Amount:</label>
+                            <input
+                                type="number"
+                                id="editAmount"
+                                value={editingReimbursement.amount || ""}
+                                onChange={(e) =>
+                                    setEditingReimbursement({
+                                        ...editingReimbursement,
+                                        amount: parseFloat(e.target.value) || 0,
+                                    })
+                                }
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="editDescription">Description:</label>
+                            <input
+                                type="text"
+                                id="editDescription"
+                                value={editingReimbursement.description || ""}
+                                onChange={(e) =>
+                                    setEditingReimbursement({
+                                        ...editingReimbursement,
+                                        description: e.target.value,
+                                    })
+                                }
+                                required
+                            />
+                        </div>
+                        <button type="submit">Save Changes</button>
+                        <button
+                            type="button"
+                            onClick={() => setEditingReimbursement(null)}
+                            style={{ marginLeft: "10px" }}
+                        >
+                            Cancel
+                        </button>
+                    </form>
+                </div>
             )}
             {!error && reimbursements.length === 0 && <p>No reimbursements found.</p>}
 
@@ -114,7 +212,6 @@ const EmployeeDashboard: React.FC = () => {
                 <button type="submit">Create Reimbursement</button>
             </form>
 
-            {/* Back to Login Button */}
             <button
                 onClick={() => navigate("/")}
                 style={{

@@ -13,7 +13,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/reimbursements")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(
+        origins = "http://localhost:5173",
+        allowCredentials = "true",
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH, RequestMethod.OPTIONS}
+)
 public class ReimbursementController {
 
     private final ReimbursementService reimbursementService;
@@ -163,5 +167,46 @@ public class ReimbursementController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
+
+    @PatchMapping("/user/self/{reimbursementId}")
+    @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true", methods = {RequestMethod.PATCH})
+    public ResponseEntity<Reimbursement> updatePendingReimbursement(
+            @PathVariable int reimbursementId,
+            @RequestBody Reimbursement updatedReimbursement,
+            HttpSession session) {
+
+        // Check if the user is logged in
+        Integer userId = (Integer) session.getAttribute("userId");
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            // Delegate the update logic to the service
+            Reimbursement reimbursement = reimbursementService.updateReimbursement(reimbursementId, updatedReimbursement, userId);
+            return ResponseEntity.ok(reimbursement);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+    }
+
+    @AdminOnly
+    @PatchMapping("/{reimbursementId}/update")
+    public ResponseEntity<Reimbursement> updateReimbursementAsManager(
+            @PathVariable int reimbursementId,
+            @RequestBody Reimbursement updatedReimbursement) {
+
+        try {
+            Reimbursement reimbursement = reimbursementService.updateReimbursementAsManager(reimbursementId, updatedReimbursement);
+            return ResponseEntity.ok(reimbursement);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+    }
+
 
 }

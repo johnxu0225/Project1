@@ -14,6 +14,7 @@ const ManagerDashboard: React.FC = () => {
     });
     const [error, setError] = useState<string>("");
     const [success, setSuccess] = useState<string>("");
+    const [editingReimbursement, setEditingReimbursement] = useState<Reimbursement | null>(null);
     const navigate = useNavigate(); // Initialize navigate
 
     useEffect(() => {
@@ -114,6 +115,42 @@ const ManagerDashboard: React.FC = () => {
             console.error("Error updating role:", err);
         }
     };
+    const handleEditReimbursement = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingReimbursement) return;
+    
+        setError("");
+        setSuccess("");
+    
+        try {
+            const response = await axios.patch(
+                `/reimbursements/${editingReimbursement.reimbid}/update`,
+                {
+                    amount: editingReimbursement.amount,
+                    description: editingReimbursement.description,
+                },
+                {
+                    withCredentials: true,
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+    
+            setPendingReimbursements(
+                pendingReimbursements.map((reimbursement) =>
+                    reimbursement.reimbid === editingReimbursement.reimbid
+                        ? response.data
+                        : reimbursement
+                )
+            );
+            setEditingReimbursement(null);
+            setSuccess("Reimbursement updated successfully!");
+        } catch (err) {
+            setError("Failed to update reimbursement. Please try again.");
+        }
+    };
+    
 
     return (
         <div>
@@ -223,30 +260,84 @@ const ManagerDashboard: React.FC = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {pendingReimbursements.length > 0 ? (
-                        pendingReimbursements.map((reimbursement) => (
-                            <tr key={reimbursement.reimbid}>
-                                <td>{reimbursement.reimbid}</td>
-                                <td>{reimbursement.description}</td>
-                                <td>${reimbursement.amount.toFixed(2)}</td>
-                                <td>
-                                    <button onClick={() => handleResolveReimbursement(reimbursement.reimbid, "APPROVED")}>
-                                        Approve
-                                    </button>
-                                    <button onClick={() => handleResolveReimbursement(reimbursement.reimbid, "DENIED")}>
-                                        Deny
-                                    </button>
-                                </td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                            <td colSpan={4}>No pending reimbursements found.</td>
+                    {pendingReimbursements.map((reimbursement) => (
+                        <tr key={reimbursement.reimbid}>
+                            <td>{reimbursement.reimbid}</td>
+                            <td>{reimbursement.description}</td>
+                            <td>${reimbursement.amount.toFixed(2)}</td>
+                            <td>
+                                <button
+                                    onClick={() => handleResolveReimbursement(reimbursement.reimbid, "APPROVED")}
+                                >
+                                    Approve
+                                </button>
+                                <button
+                                    onClick={() => handleResolveReimbursement(reimbursement.reimbid, "DENIED")}
+                                >
+                                    Deny
+                                </button>
+                                <button
+                                    onClick={() => setEditingReimbursement(reimbursement)}
+                                    style={{
+                                        backgroundColor: "orange",
+                                        color: "white",
+                                        padding: "5px 10px",
+                                        border: "none",
+                                        borderRadius: "5px",
+                                    }}
+                                >
+                                    Edit
+                                </button>
+                            </td>
                         </tr>
-                    )}
+                    ))}
                 </tbody>
             </table>
-
+            {editingReimbursement && (
+            <div>
+                <h3>Edit Reimbursement</h3>
+                <form onSubmit={handleEditReimbursement}>
+                    <div>
+                        <label htmlFor="editAmount">Amount:</label>
+                        <input
+                            type="number"
+                            id="editAmount"
+                            value={editingReimbursement.amount || ""}
+                            onChange={(e) =>
+                                setEditingReimbursement({
+                                    ...editingReimbursement,
+                                    amount: parseFloat(e.target.value) || 0,
+                                })
+                            }
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="editDescription">Description:</label>
+                        <input
+                            type="text"
+                            id="editDescription"
+                            value={editingReimbursement.description || ""}
+                            onChange={(e) =>
+                                setEditingReimbursement({
+                                    ...editingReimbursement,
+                                    description: e.target.value,
+                                })
+                            }
+                            required
+                        />
+                    </div>
+                    <button type="submit">Save Changes</button>
+                    <button
+                        type="button"
+                        onClick={() => setEditingReimbursement(null)}
+                        style={{ marginLeft: "10px" }}
+                    >
+                        Cancel
+                    </button>
+                </form>
+            </div>
+        )}
             <h3>Resolved Reimbursements</h3>
             <table border="1" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                 <thead>
