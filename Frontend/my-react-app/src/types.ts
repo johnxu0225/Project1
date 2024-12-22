@@ -6,8 +6,8 @@ export interface User {
 
 export interface Reimbursement {
     reimbid: number;
-    amount: number;
     description: string;
+    amount: number;
     status: string;
-    user: User;
+    userId: number; 
 }

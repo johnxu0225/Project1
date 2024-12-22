@@ -40,12 +40,29 @@ const ManagerDashboard: React.FC = () => {
 
     const handleDeleteUser = async (userId: number) => {
         try {
+            // Send delete request to backend
             await axios.delete(`/users/${userId}`, { withCredentials: true });
-            setUsers(users.filter((user) => user.userId !== userId));
+    
+            // Update users state to remove the deleted user
+            setUsers((prevUsers) => prevUsers.filter((user) => user.userId !== userId));
+    
+            // Remove reimbursements associated with the deleted user
+            setPendingReimbursements((prevReimbursements) =>
+                prevReimbursements.filter((reimbursement) => reimbursement.user.userId !== userId)
+            );
+    
+            setResolvedReimbursements((prevReimbursements) =>
+                prevReimbursements.filter((reimbursement) => reimbursement.user.userId !== userId)
+            );
+    
+            setSuccess(`User ID ${userId} and related reimbursements deleted successfully.`);
         } catch (err) {
-            setError("Failed to delete user.");
+            setError("Failed to delete user and related reimbursements.");
         }
     };
+    
+    
+    
 
     const handleResolveReimbursement = async (id: number, status: string) => {
         try {
