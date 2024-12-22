@@ -5,6 +5,7 @@ import com.revature.models.DTOs.IncomingUserDTO;
 import com.revature.models.User;
 import com.revature.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,6 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/users")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class UserController {
 
     private final UserService userService;
@@ -40,5 +42,19 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable int userId) {
         userService.deleteUser(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @AdminOnly
+    @PatchMapping("/{userId}/role")
+    public ResponseEntity<User> updateUserRole(
+            @PathVariable int userId,
+            @RequestParam String role
+    ) {
+        try {
+            User updatedUser = userService.updateUserRole(userId, role);
+            return ResponseEntity.ok(updatedUser);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 }

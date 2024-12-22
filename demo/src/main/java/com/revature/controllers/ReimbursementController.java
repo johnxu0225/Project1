@@ -3,7 +3,9 @@ package com.revature.controllers;
 import com.revature.aspects.AdminOnly;
 import com.revature.models.Reimbursement;
 import com.revature.services.ReimbursementService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,6 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/reimbursements")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class ReimbursementController {
 
     private final ReimbursementService reimbursementService;
@@ -20,33 +23,48 @@ public class ReimbursementController {
         this.reimbursementService = reimbursementService;
     }
 
-    /**
-     * Create a new reimbursement for a specific user
-     *
-     * @param reimbursement Reimbursement object with details
-     * @param userId ID of the user submitting the reimbursement
-     * @return ResponseEntity containing the created reimbursement
-     */
-    @PostMapping("/{userId}")
-    public ResponseEntity<Reimbursement> createReimbursement(@RequestBody Reimbursement reimbursement, @PathVariable int userId) {
-        Reimbursement savedReimbursement = reimbursementService.insertReimbursement(reimbursement, userId);
-        return ResponseEntity.status(201).body(savedReimbursement);
+    @PostMapping("/user/self")
+    public ResponseEntity<Reimbursement> createReimbursementForLoggedInUser(
+            @RequestBody Reimbursement reimbursement,
+            HttpSession session
+    ) {
+        // Retrieve the logged-in user's ID from the session
+        Integer userId = (Integer) session.getAttribute("userId");
+
+        if (userId == null) {
+            // Return 401 Unauthorized if no user is logged in
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            // Delegate reimbursement creation to the service
+            Reimbursement savedReimbursement = reimbursementService.insertReimbursement(reimbursement, userId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedReimbursement);
+        } catch (IllegalArgumentException e) {
+            // Handle bad input and return 400 Bad Request
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 
-    /**
-     * Get all reimbursements for a specific user
-     *
-     * @param userId ID of the user
-     * @return ResponseEntity containing a list of reimbursements for the user
-     */
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Reimbursement>> getUserReimbursements(@PathVariable int userId) {
+    public ResponseEntity<List<Reimbursement>> getUserReimbursements(@PathVariable int userId, HttpSession session) {
+        Integer sessionUserId = (Integer) session.getAttribute("userId");
+        String role = (String) session.getAttribute("role");
+
+        if (sessionUserId == null) {
+            // User not logged in
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        if (!role.equals("manager") && !sessionUserId.equals(userId)) {
+            // Employee trying to access another user's data
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        // Fetch reimbursements for the user
         List<Reimbursement> reimbursements = reimbursementService.getReimbursementsByUserID(userId);
 
-        if (reimbursements.isEmpty()) {
-            return ResponseEntity.status(404).body(List.of()); // Return an empty list instead of a string
-        }
-        return ResponseEntity.ok(reimbursements);
+        return ResponseEntity.ok(reimbursements); // Return empty list with 200 if no reimbursements
     }
 
     /**
@@ -80,7 +98,6 @@ public class ReimbursementController {
 
     /**
      * Get all pending reimbursements (Admin Only)
-     *
      * @return ResponseEntity containing a list of all pending reimbursements
      */
     @AdminOnly
@@ -107,4 +124,44 @@ public class ReimbursementController {
         Reimbursement resolvedReimbursement = reimbursementService.resolveReimbursement(id, status);
         return ResponseEntity.ok(resolvedReimbursement);
     }
+
+    @GetMapping("/user/self")
+    public ResponseEntity<List<Reimbursement>> getReimbursementsForLoggedInUser(HttpSession session) {
+        Integer userId = (Integer) session.getAttribute("userId");
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        List<Reimbursement> reimbursements = reimbursementService.getReimbursementsByUserID(userId);
+
+        return ResponseEntity.ok(reimbursements);
+    }
+
+    @AdminOnly
+    @PostMapping("/{userId}")
+    public ResponseEntity<Reimbursement> createReimbursementForSpecificUser(
+            @RequestBody Reimbursement reimbursement,
+            @PathVariable int userId,
+            HttpSession session
+    ) {
+        Integer sessionUserId = (Integer) session.getAttribute("userId");
+        String role = (String) session.getAttribute("role");
+
+        if (sessionUserId == null || role == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        // Allow only managers to use this endpoint
+        if (!role.equals("manager")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            Reimbursement savedReimbursement = reimbursementService.insertReimbursement(reimbursement, userId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedReimbursement);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+    }
+
 }

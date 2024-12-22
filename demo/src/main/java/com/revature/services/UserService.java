@@ -67,4 +67,22 @@ public class UserService {
         // Delete the user
         userDAO.deleteById(userId);
     }
+
+    public User updateUserRole(int userId, String role) {
+        // Validate the role input
+        if (role == null || role.isBlank()) {
+            throw new IllegalArgumentException("Role cannot be null or blank.");
+        }
+
+        // Fetch the user from the database
+        Optional<User> optionalUser = userDAO.findById(userId);
+        if (optionalUser.isEmpty()) {
+            throw new IllegalArgumentException("User with ID " + userId + " not found.");
+        }
+
+        // Update the role and save the user
+        User user = optionalUser.get();
+        user.setRole(role);
+        return userDAO.save(user);
+    }
 }
