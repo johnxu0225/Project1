@@ -4,6 +4,7 @@ import { Reimbursement } from "../types";
 import { useNavigate } from "react-router-dom";
 
 const EmployeeDashboard: React.FC = () => {
+    const [userName, setUserName] = useState<string>(""); // New state for user's name
     const [reimbursements, setReimbursements] = useState<Reimbursement[]>([]);
     const [error, setError] = useState<string>("");
     const [success, setSuccess] = useState<string>("");
@@ -15,24 +16,29 @@ const EmployeeDashboard: React.FC = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchReimbursements = async () => {
+        const fetchUserAndReimbursements = async () => {
             try {
-                const response = await axios.get("/reimbursements/user/self", {
+                // Fetch user details
+                const userResponse = await axios.get("/users/self", { withCredentials: true });
+                setUserName(`${userResponse.data.firstName} ${userResponse.data.lastName}`); // Set the user's name
+                
+                // Fetch reimbursements
+                const reimbursementsResponse = await axios.get("/reimbursements/user/self", {
                     withCredentials: true,
                 });
-                setReimbursements(response.data);
+                setReimbursements(reimbursementsResponse.data);
             } catch (error: any) {
-                console.error("Error fetching reimbursements:", error);
+                console.error("Error fetching data:", error);
                 if (error.response?.status === 401) {
                     setError("You are not authorized. Redirecting to login...");
                     setTimeout(() => navigate("/"), 2000);
                 } else {
-                    setError("Failed to fetch reimbursements.");
+                    setError("Failed to fetch data.");
                 }
             }
         };
 
-        fetchReimbursements();
+        fetchUserAndReimbursements();
     }, [navigate]);
 
     const handleCreateReimbursement = async (e: React.FormEvent) => {
@@ -96,6 +102,8 @@ const EmployeeDashboard: React.FC = () => {
 
     return (
         <div>
+            {/* Display the user's name at the top */}
+            <h2>Hi, {userName}</h2>
             <h2>Your Reimbursements</h2>
             {error && <p style={{ color: "red" }}>{error}</p>}
             {success && <p style={{ color: "green" }}>{success}</p>}

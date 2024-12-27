@@ -214,14 +214,15 @@ const ManagerDashboard: React.FC = () => {
                 </label>
                 <button type="submit">Create</button>
             </form>
-
-        <h3>Users</h3>
+            <h3>Users</h3>
             {/* Users Table */}
             <table border="1" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                 <thead>
                     <tr>
                         <th>User ID</th>
                         <th>Username</th>
+                        <th>First Name</th>
+                        <th>Last Name</th>
                         <th>Role</th>
                         <th>Actions</th>
                     </tr>
@@ -232,39 +233,38 @@ const ManagerDashboard: React.FC = () => {
                             <tr key={user.userId}>
                                 <td>{user.userId}</td>
                                 <td>{user.username}</td>
+                                <td>{user.firstName || "N/A"}</td> {/* Display first name */}
+                                <td>{user.lastName || "N/A"}</td> {/* Display last name */}
                                 <td>{user.role}</td>
                                 <td>
                                     <button onClick={() => handleDeleteUser(user.userId)} style={{ marginRight: "10px" }}>
                                         Delete
                                     </button>
-                                    <button
-                                        onClick={() =>
-                                            handleUpdateUserRole(
-                                                user.userId,
-                                                user.role === "employee" ? "manager" : "employee"
-                                            )
-                                        }
-                                        style={{
-                                            backgroundColor: user.role === "employee" ? "green" : "orange",
-                                            color: "white",
-                                            padding: "5px 10px",
-                                            border: "none",
-                                            borderRadius: "5px",
-                                        }}
-                                    >
-                                        {user.role === "employee" ? "Promote to Manager" : "Demote to Employee"}
-                                    </button>
+                                    {user.role === "employee" && (
+                                        <button
+                                            onClick={() => handleUpdateUserRole(user.userId, "manager")}
+                                            style={{
+                                                backgroundColor: "green",
+                                                color: "white",
+                                                padding: "5px 10px",
+                                                border: "none",
+                                                borderRadius: "5px",
+                                            }}
+                                        >
+                                            Promote to Manager
+                                        </button>
+                                    )}
+
                                 </td>
                             </tr>
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={4}>No users found.</td>
+                            <td colSpan={6}>No users found.</td> {/* Updated colspan to match new column count */}
                         </tr>
                     )}
                 </tbody>
             </table>
-            {/* Pending and Resolved Reimbursements */}
             {/* Pending Reimbursements Table */}
             <h3>Pending Reimbursements</h3>
             <table border="1" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>

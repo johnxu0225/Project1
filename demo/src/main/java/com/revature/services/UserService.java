@@ -85,4 +85,9 @@ public class UserService {
         user.setRole(role);
         return userDAO.save(user);
     }
+
+    public User getUserById(int userId) {
+        return userDAO.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User with ID " + userId + " not found."));
+    }
 }

@@ -28,7 +28,7 @@ const Login: React.FC = () => {
 
     return (
         <div>
-            <h2>Login</h2>
+            <h2>Reimbursement System</h2>
             <form onSubmit={handleLogin}>
                 <label>Username:</label>
                 <input
